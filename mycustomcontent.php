@@ -204,17 +204,21 @@ class MyCustomContent extends Module
     public function hookDisplayProductAdditionalInfo($params)
     {
         $product = $params['product'];
+        $productId = (int)$product['id'];
 
-        // Get basic values.
-        $viewEnabled = Configuration::get('MYCUSTOMCONTENT_VIEWENABLED') && (bool)$product['mcc_product_viewenabled'];
+        $productSettings = $this->getProductSettings($productId);
+
+        if ($productSettings == false)
+            return $this->displayError($this->l('Failed to retrieve product settings for MyCustomContent'));
+
+        // Get basic options.
+        $viewEnabled = Configuration::get('MYCUSTOMCONTENT_VIEWENABLED') && $productSettings['view_enabled'];
         $contentString = Configuration::get('MYCUSTOMCONTENT_CONTENT');
 
-        // Check for per-product contents override.
-        $productOverridesEnabled = (bool)Configuration::get('MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED') && 
-                                   (bool)$product['mcc_product_overrideenabled'];
-
-        if ($productOverridesEnabled == true)
-            $contentString = (string)$product['mcc_product_overridevalue'];
+        // Apply per-product contents override if enabled.
+        $productSettings['override_enabled'] &= (bool)Configuration::get('MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED');
+        if ($productSettings['override_enabled'] == true)
+            $contentString = $productSettings['override_contents'];
 
         // Display the template.
         $this->context->smarty->assign([
@@ -227,20 +231,50 @@ class MyCustomContent extends Module
 
     public function hookDisplayAdminProductsOptionsStepTop(array $params)
     {
-        $productId = $params['id_product'];
-        $productInstance = new Product($productId);
+        $productId = (int)$params['id_product'];
+        $productSettings = $this->getProductSettings($productId);
 
-        $configViewEnabled = (bool)Configuration::get('MYCUSTOMCONTENT_VIEWENABLED');
-        $configOverridesEnabled = (bool)Configuration::get('MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED');
+        if ($productSettings == false)
+            return $this->displayError('<p>' . $this->l('Failed to retrieve product settings for MyCustomContent') . '</p>');
         
         $this->context->smarty->assign([
-            'mycustomcontent_product_checked' => (int)$productInstance->mcc_product_viewenabled,
-            'mycustomcontent_viewenabled' => $configViewEnabled,
-            'mycustomcontent_product_override_enabled_globally' => $configOverridesEnabled,
-            'mycustomcontent_product_override_checked' => (int)$productInstance->mcc_product_overrideenabled,
-            'mycustomcontent_product_override_value' => (string)$productInstance->mcc_product_overridevalue
+            'mycustomcontent_product_checked' => (int)$productSettings['view_enabled'],
+            'mycustomcontent_viewenabled' => (bool)Configuration::get('MYCUSTOMCONTENT_VIEWENABLED'),
+            'mycustomcontent_product_override_enabled_globally' => (bool)Configuration::get('MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED'),
+            'mycustomcontent_product_override_checked' => (int)$productSettings['override_enabled'],
+            'mycustomcontent_product_override_value' => (string)$productSettings['override_contents']
         ]);
+
         return $this->display(__FILE__, 'mycustomcontentproductoption.tpl');
+    }
+
+
+    // ------------------------------------------------------------
+    // Module-related database interactions:
+    //
+    //   - getProductSettings($productId)    Get product's MCC settings by its ID.
+    // ------------------------------------------------------------
+
+    public function getProductSettings($productId)
+    {
+        if (!is_numeric($productId))
+            return false;
+        
+        // Get the module-related product settings.
+        $sqlGetProductSettings = 'SELECT mcc_product_viewenabled, mcc_product_overrideenabled, mcc_product_overridevalue' . 
+                                 ' FROM ' . _DB_PREFIX_ . 'product' .
+                                 ' WHERE id_product = ' . (string)$productId;
+        
+        $dbResult = Db::getInstance()->getRow($sqlGetProductSettings, false);
+
+        if(!$dbResult)
+            return false;
+
+        return [
+            'view_enabled' => (bool)$dbResult['mcc_product_viewenabled'],
+            'override_enabled' => (bool)$dbResult['mcc_product_overrideenabled'],
+            'override_contents' => (string)$dbResult['mcc_product_overridevalue']
+        ];
     }
 
 
