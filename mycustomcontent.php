@@ -101,7 +101,7 @@ class MyCustomContent extends Module
         $configValues = [
             'MYCUSTOMCONTENT_VIEWENABLED' => true,
             'MYCUSTOMCONTENT_CONTENT' => 'Hello, XXI Century World!',
-            'MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED' => true
+            'MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED' => false
         ];
 
         foreach ($configValues as $key => $value)
