@@ -1,0 +1,11 @@
+.my-mycustomcontent-content {
+    margin: 1.5rem 0 0;
+    padding: 1rem;
+    background: #fff;
+    box-shadow: 0px 1px 3px 0px rgba(0,0,0,.2);
+}
+
+.my-mycustomcontent-content>:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
