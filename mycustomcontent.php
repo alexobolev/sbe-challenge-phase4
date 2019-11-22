@@ -48,7 +48,8 @@ class MyCustomContent extends Module
         $this->confirmUninstall = $this->l("Are you sure you want to uninstall?");
 
         if (!Configuration::get('MYCUSTOMCONTENT_VIEWENABLED') ||
-            !Configuration::get('MYCUSTOMCONTENT_CONTENT')
+            !Configuration::get('MYCUSTOMCONTENT_CONTENT') ||
+            !Configuration::get('MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED')
         ) {
             $this->warning = $this->l('Not all MyCustomContent settings provided');
         }
@@ -99,7 +100,8 @@ class MyCustomContent extends Module
     {
         $configValues = [
             'MYCUSTOMCONTENT_VIEWENABLED' => true,
-            'MYCUSTOMCONTENT_CONTENT' => 'Hello, XXI Century World!'
+            'MYCUSTOMCONTENT_CONTENT' => 'Hello, XXI Century World!',
+            'MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED' => true
         ];
 
         foreach ($configValues as $key => $value)
@@ -118,10 +120,16 @@ class MyCustomContent extends Module
      */
     public function installDatabase()
     {
+        // Do not replace with a loop like in [un]installConfig
+        // because potentially dangerous operation.
         $sqlAddViewEnabled = 'ALTER TABLE ' . _DB_PREFIX_ . 'product ADD mcc_product_viewenabled TINYINT(1) DEFAULT 1;';
+        $sqlAddOverrideEnabled = 'ALTER TABLE ' . _DB_PREFIX_ . 'product ADD mcc_product_overrideenabled TINYINT(1) DEFAULT 0;';
+        $sqlAddOverrideValue = 'ALTER TABLE ' . _DB_PREFIX_ . 'product ADD mcc_product_overridevalue TEXT DEFAULT NULL;';
 
         $status = true;
         $status &= Db::getInstance()->execute($sqlAddViewEnabled);
+        $status &= Db::getInstance()->execute($sqlAddOverrideEnabled);
+        $status &= Db::getInstance()->execute($sqlAddOverrideValue);
 
         return $status;
     }
@@ -145,7 +153,8 @@ class MyCustomContent extends Module
     {
         $configKeys = [
             'MYCUSTOMCONTENT_VIEWENABLED',
-            'MYCUSTOMCONTENT_CONTENT'
+            'MYCUSTOMCONTENT_CONTENT',
+            'MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED'
         ];
 
         foreach ($configKeys as $key)
@@ -164,10 +173,16 @@ class MyCustomContent extends Module
      */
     public function uninstallDatabase()
     {
+        // Do not replace with a loop like in [un]installConfig
+        // because potentially dangerous operation.
         $sqlDropViewEnabled = 'ALTER TABLE ' . _DB_PREFIX_ . 'product DROP mcc_product_viewenabled;';
+        $sqlDropOverrideEnabled = 'ALTER TABLE ' . _DB_PREFIX_ . 'product DROP mcc_product_overrideenabled;';
+        $sqlDropOverrideValue = 'ALTER TABLE ' . _DB_PREFIX_ . 'product DROP mcc_product_overridevalue;';
 
         $status = true;
         $status &= Db::getInstance()->execute($sqlDropViewEnabled);
+        $status &= Db::getInstance()->execute($sqlDropOverrideEnabled);
+        $status &= Db::getInstance()->execute($sqlDropOverrideValue);
 
         return $status;
     }
@@ -190,9 +205,18 @@ class MyCustomContent extends Module
     {
         $product = $params['product'];
 
+        // Get basic values.
         $viewEnabled = Configuration::get('MYCUSTOMCONTENT_VIEWENABLED') && (bool)$product['mcc_product_viewenabled'];
         $contentString = Configuration::get('MYCUSTOMCONTENT_CONTENT');
 
+        // Check for per-product contents override.
+        $productOverridesEnabled = (bool)Configuration::get('MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED') && 
+                                   (bool)$product['mcc_product_overrideenabled'];
+
+        if ($productOverridesEnabled == true)
+            $contentString = (string)$product['mcc_product_overridevalue'];
+
+        // Display the template.
         $this->context->smarty->assign([
             'mycustomcontent_viewenabled' => $viewEnabled,
             'mycustomcontent_content' => $contentString
@@ -205,10 +229,16 @@ class MyCustomContent extends Module
     {
         $productId = $params['id_product'];
         $productInstance = new Product($productId);
+
+        $configViewEnabled = (bool)Configuration::get('MYCUSTOMCONTENT_VIEWENABLED');
+        $configOverridesEnabled = (bool)Configuration::get('MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED');
         
         $this->context->smarty->assign([
-            'mycustomcontent_product_debug' => '<pre><code>' . json_encode($productInstance) . '</code></pre>',
-            'mycustomcontent_product_checked' => (int)$productInstance->mcc_product_viewenabled
+            'mycustomcontent_product_checked' => (int)$productInstance->mcc_product_viewenabled,
+            'mycustomcontent_viewenabled' => $configViewEnabled,
+            'mycustomcontent_product_override_enabled_globally' => $configOverridesEnabled,
+            'mycustomcontent_product_override_checked' => (int)$productInstance->mcc_product_overrideenabled,
+            'mycustomcontent_product_override_value' => (string)$productInstance->mcc_product_overridevalue
         ]);
         return $this->display(__FILE__, 'mycustomcontentproductoption.tpl');
     }
@@ -231,15 +261,18 @@ class MyCustomContent extends Module
         if (Tools::isSubmit('submit' . $this->name)) {
             $mccViewEnabled = boolval(Tools::getValue('MYCUSTOMCONTENT_VIEWENABLED'));
             $mccContent = strval(Tools::getValue('MYCUSTOMCONTENT_CONTENT'));
+            $mccPerProductOverridesEnabled = boolval(Tools::getValue('MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED'));
 
             if (
                 !Validate::isBool($mccViewEnabled) ||
-                !Validate::isString($mccContent)
+                !Validate::isString($mccContent) ||
+                !Validate::isBool($mccPerProductOverridesEnabled)
             ) {
                 $output .= $this->displayError($this->l('Invalid configuration value'));
             } else {
                 Configuration::updateValue('MYCUSTOMCONTENT_VIEWENABLED', $mccViewEnabled, true);
                 Configuration::updateValue('MYCUSTOMCONTENT_CONTENT', $mccContent, true);
+                Configuration::updateValue('MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED', $mccPerProductOverridesEnabled, true);
                 $output .= $this->displayConfirmation($this->l('Settings updated'));
             }
         }
@@ -286,7 +319,26 @@ class MyCustomContent extends Module
                     'desc' => $this->l('HTML supported, will be displayed on the product page in a big white box'),
                     'required' => true,
                     'class' => 'rte'
-                ]
+                ],
+                [
+                    'type' => 'switch',
+                    'label' => $this->l('Allow individual products to override the message'),
+                    'name' => 'MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED',
+                    'is_bool' => true,
+                    'required' => true,
+                    'values' => [
+                        [
+                            'id' => 'MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED_on',
+                            'value' => 1,
+                            'label' => $this->l('Yes')
+                        ],
+                        [
+                            'id' => 'MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED_off',
+                            'value' => 0,
+                            'label' => $this->l('No')
+                        ]
+                    ]
+                ],
             ],
             'submit' => [
                 'title' => $this->l('Save'),
@@ -323,6 +375,7 @@ class MyCustomContent extends Module
 
         $helper->fields_value['MYCUSTOMCONTENT_VIEWENABLED'] = Configuration::get('MYCUSTOMCONTENT_VIEWENABLED');
         $helper->fields_value['MYCUSTOMCONTENT_CONTENT'] = Configuration::get('MYCUSTOMCONTENT_CONTENT');
+        $helper->fields_value['MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED'] = Configuration::get('MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED');
 
         return $helper->generateForm($fieldsForm);
     }

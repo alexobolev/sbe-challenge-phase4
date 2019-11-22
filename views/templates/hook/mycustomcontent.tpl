@@ -4,7 +4,7 @@
     {if isset($mycustomcontent_content) && $mycustomcontent_content}
       {$mycustomcontent_content nofilter}
     {else}
-      Sorry, no content provided.
+      <p>{l s='Sorry, no custom content has been provided by the shop administration.'}</p>
     {/if}
   </div>
 {/if}
