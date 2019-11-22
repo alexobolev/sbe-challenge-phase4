@@ -1,3 +1,7 @@
+{*
+ * @author Alex Sobolev <alexobolev@outlook.com>
+ * @license https://opensource.org/licenses/MIT The MIT License 
+ *}
 <!-- MyCustomContent Product Option block -->
 <div class="row">
     <div class="col-md-8">

@@ -1,4 +1,9 @@
 <?php
+/**
+ * @author Alex Sobolev <alexobolev@outlook.com>
+ * @license https://opensource.org/licenses/MIT The MIT License
+ */
+
 if (!defined('_PS_VERSION_')) {
     exit;
 }
@@ -272,6 +277,10 @@ class MyCustomContent extends Module
     //   - setProductSettings(..)    Set product's MCC settings by its ID.
     // ------------------------------------------------------------
 
+    /**
+     * Retrieve the settings relevant to the MyCustomModule for a product by its ID.
+     * @return mixed array|boolean Array of setting values on success and False on error.
+     */
     public function getProductSettings($productId)
     {
         if (!is_numeric($productId))
@@ -280,11 +289,11 @@ class MyCustomContent extends Module
         // Get the module-related product settings.
         $sqlGetProductSettings = 'SELECT mcc_product_viewenabled, mcc_product_overrideenabled, mcc_product_overridevalue' . 
                                  ' FROM ' . _DB_PREFIX_ . 'product' .
-                                 ' WHERE id_product = ' . (string)$productId;
+                                 ' WHERE id_product = ' . pSQL($productId);
         
         $dbResult = Db::getInstance()->getRow($sqlGetProductSettings, false);
 
-        if(!$dbResult)
+        if($dbResult == false)
             return false;
 
         return [
@@ -294,6 +303,10 @@ class MyCustomContent extends Module
         ];
     }
 
+    /**
+     * Update the settings relevant to the MyCustomModule for a product by its ID.
+     * @return boolean Whether the settings have been updated successfully.
+     */
     public function setProductSettings($productId, $viewEnabled, $overrideEnabled, $overrideValue)
     {
         if (!is_numeric($productId))
@@ -450,4 +463,3 @@ class MyCustomContent extends Module
         return $helper->generateForm($fieldsForm);
     }
 }
-

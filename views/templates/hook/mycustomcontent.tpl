@@ -1,3 +1,7 @@
+{*
+ * @author Alex Sobolev <alexobolev@outlook.com>
+ * @license https://opensource.org/licenses/MIT The MIT License 
+ *}
 <!-- MyCustomContent block -->
 {if isset($mycustomcontent_viewenabled) && $mycustomcontent_viewenabled}
   <div class="my-mycustomcontent-content">
