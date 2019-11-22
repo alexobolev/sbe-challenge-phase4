@@ -401,7 +401,7 @@ class MyCustomContent extends Module
                     'name' => 'MYCUSTOMCONTENT_CONTENT',
                     'desc' => $this->l('HTML supported, will be displayed on the product page in a big white box'),
                     'required' => true,
-                    'class' => 'rte'
+                    'class' => 'autoload_rte'
                 ],
                 [
                     'type' => 'switch',
@@ -428,8 +428,6 @@ class MyCustomContent extends Module
                 'class' => 'btn btn-primary pull-right'
             ]
         ];
-
-        $this->context->controller->addJS($this->_path . 'js/tinymce-init.js');
 
         $helper = new HelperForm();
 
