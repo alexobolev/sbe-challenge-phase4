@@ -80,7 +80,8 @@ class MyCustomContent extends Module
         $hookNames = [
             'header',                              // custom CSS for front-end
             'displayProductAdditionalInfo',        // the content block in front-end
-            'displayAdminProductsOptionsStepTop'   // per-Product config in back-office
+            'displayAdminProductsOptionsStepTop',  // per-Product config in back-office
+            'actionProductUpdate'                  // product form extra fields handling
         ];
 
         foreach ($hookNames as $name)
@@ -194,6 +195,7 @@ class MyCustomContent extends Module
     //   - hookDisplayHeader()                           Custom module CSS.
     //   - hookDisplayProductAdditionalInfo()            Front-end content block.
     //   - hookDisplayAdminProductsOptionsStepTop(..)    Per-Product settings form in back-office.
+    //   - hookActionProductUpdate(..)                   Per-Product settings form extra fields handling.
     // ------------------------------------------------------------
 
     public function hookDisplayHeader()
@@ -248,11 +250,26 @@ class MyCustomContent extends Module
         return $this->display(__FILE__, 'mycustomcontentproductoption.tpl');
     }
 
+    public function hookActionProductUpdate($params)
+    {
+        $productId = (int)$params['id_product'];
+
+        $formViewEnabled = Tools::getValue('mcc_product_viewenabled');
+        $formOverrideEnabled = Tools::getValue('mcc_product_overrideenabled');
+        $formOverrideContents = Tools::getValue('mcc_product_overridevalue');
+
+        $updateResult = $this->setProductSettings($productId, $formViewEnabled, $formOverrideEnabled, $formOverrideContents);
+        
+        if ($updateResult != true)
+            return $this->displayError('<p>' . $this->l('Failed to update product settings for MyCustomContent') . '</p>');
+    }
+
 
     // ------------------------------------------------------------
     // Module-related database interactions:
     //
-    //   - getProductSettings($productId)    Get product's MCC settings by its ID.
+    //   - getProductSettings(..)    Get product's MCC settings by its ID.
+    //   - setProductSettings(..)    Set product's MCC settings by its ID.
     // ------------------------------------------------------------
 
     public function getProductSettings($productId)
@@ -275,6 +292,25 @@ class MyCustomContent extends Module
             'override_enabled' => (bool)$dbResult['mcc_product_overrideenabled'],
             'override_contents' => (string)$dbResult['mcc_product_overridevalue']
         ];
+    }
+
+    public function setProductSettings($productId, $viewEnabled, $overrideEnabled, $overrideValue)
+    {
+        if (!is_numeric($productId))
+            return false;
+
+        $productData = [
+            'mcc_product_viewenabled' => pSQL($viewEnabled),
+            'mcc_product_overrideenabled' => pSQL($overrideEnabled),
+            'mcc_product_overridevalue' => pSQL($overrideValue, true)  // HTML content, so $htmlOK = true
+        ];
+
+        $dbResult = Db::getInstance()->update('product', $productData, 'id_product=' . pSQL($productId), 1);
+
+        if (!$dbResult)
+            return false;
+
+        return true;
     }
 
 
