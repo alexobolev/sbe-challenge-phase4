@@ -38,7 +38,7 @@
         {if ! $mycustomcontent_viewenabled}
             <div class="row">
                 <div class="col-md-12">
-                    <div class="alert alert-danger" role="alert">
+                    <div class="alert alert-warning" role="alert">
                         <p class="alert-text">
                             {l s='These settings will be saved but the module is configured to display nothing.' mod='mycustomcontent'}
                         </p>
@@ -72,7 +72,7 @@
         {if ! $mycustomcontent_product_override_enabled_globally}
             <div class="row">
                 <div class="col-md-12">
-                    <div class="alert alert-danger" role="alert">
+                    <div class="alert alert-warning" role="alert">
                         <p class="alert-text">
                             {l s='These settings will not take effect because overriding global contents is not enabled by the module.' mod='mycustomcontent'}
                         </p>
@@ -101,18 +101,35 @@
         <div class="row">
             <div class="col-md-12">
                 <div class="alert alert-info expandable-alert" role="alert">
-                    <button type="button" class="read-more btn-link" data-toggle="collapse" data-target="#mccEmptinessInfo" >
+                    <button type="button" class="read-more btn-link" data-toggle="collapse" data-target="#mccVariablesInfo" >
                         {l s='Read more' mod='mycustomcontent'}
                     </button>
                     <p class="alert-text">
-                        {l s='If the product\'s custom contents are empty and the product is set to show them, the content box will display a friendly notification in the front office.' mod='mycustomcontent'}
+                        {l s='You can use special variables in the content text if substitution is enabled by the module.' mod='mycustomcontent'}
                     </p>
-                    <div id="mccEmptinessInfo" class="alert-more collapse">
+                    <div id="mccVariablesInfo" class="alert-more collapse">
                         <p class="alert-text">
-                            {l s='If you are sure that the contents above are empty but the notification is not shown in the front office, you may need to check the source HTML code (left-most button in the editor).' mod='mycustomcontent'}
+                            {l s='This is a Proof-of-Concept feature allowing a (very) limited variable usage in the custom content.' mod='mycustomcontent'}
                         </p>
                         <p class="alert-text">
-                            {l s='Using HTML directly may also increase the versatility of this feature.' mod='mycustomcontent'}
+                            {l s='By wrapping a registered variable in curly brackets ({..}), you can make your custom content dynamic.' mod='mycustomcontent'}
+                        </p>
+                        <p class="alert-text mt-2">
+                            {l s='The few available substitutions are:' mod='mycustomcontent'}
+                            <table class="table table-sm mt-2 mb-2">
+                                <tbody>
+                                    {foreach from=$mycustomcontent_product_substitutions key=substitution item=description}
+                                        <tr>
+                                            <td><code>{$substitution}</code></td>
+                                            <td>{$description}</td>
+                                        </tr>
+                                    {/foreach}
+                                </tbody>
+                            </table>
+                        </p>
+                        <p class="alert-text">
+                            <strong class="pr-1">{l s='Important:' mod='mycustomcontent'}</strong>
+                            {l s='always check that the substitutions work as expected, as the module does not validate the variables. Misspelled variables would be visible to the customers.' mod='mycustomcontent'}
                         </p>
                     </div>
                 </div>

@@ -55,7 +55,8 @@ class MyCustomContent extends Module
 
         if (!Configuration::get('MYCUSTOMCONTENT_VIEWENABLED') ||
             !Configuration::get('MYCUSTOMCONTENT_CONTENT') ||
-            !Configuration::get('MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED')
+            !Configuration::get('MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED') ||
+            !Configuration::get('MYCUSTOMCONTENT_SUBSTITUTIONSENABLED')
         ) {
             $this->warning = $this->l('Not all MyCustomContent settings provided');
         }
@@ -108,7 +109,8 @@ class MyCustomContent extends Module
         $configValues = [
             'MYCUSTOMCONTENT_VIEWENABLED' => true,
             'MYCUSTOMCONTENT_CONTENT' => 'Hello, XXI Century World!',
-            'MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED' => false
+            'MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED' => false,
+            'MYCUSTOMCONTENT_SUBSTITUTIONSENABLED' => true
         ];
 
         foreach ($configValues as $key => $value) {
@@ -161,7 +163,8 @@ class MyCustomContent extends Module
         $configKeys = [
             'MYCUSTOMCONTENT_VIEWENABLED',
             'MYCUSTOMCONTENT_CONTENT',
-            'MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED'
+            'MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED',
+            'MYCUSTOMCONTENT_SUBSTITUTIONSENABLED'
         ];
 
         foreach ($configKeys as $key) {
@@ -214,6 +217,10 @@ class MyCustomContent extends Module
         $product = $params['product'];
         $productId = (int)$product['id'];
 
+        $langId = $this->context->language->id;
+
+        // Get product data.
+        $productInstance = new Product($productId, false, $langId);
         $productSettings = $this->getProductSettings($productId);
 
         if ($productSettings == false) {
@@ -229,6 +236,20 @@ class MyCustomContent extends Module
 
         if ($productSettings['override_enabled'] == true) {
             $contentString = $productSettings['override_contents'];
+        }
+
+        // Apply substitutions if enabled.
+        $substitutionsEnabled = (bool)Configuration::get('MYCUSTOMCONTENT_SUBSTITUTIONSENABLED');
+
+        if ($substitutionsEnabled) {
+            $substitutionMap = [
+                'MCC_GLOBAL_CONTENTS' => Configuration::get('MYCUSTOMCONTENT_CONTENT'),
+                'PRODUCT_NAME' => $productInstance->name
+            ];
+
+            foreach ($substitutionMap as $key => $value) {
+                $contentString = str_replace('{' . $key . '}', $value, $contentString);
+            }
         }
 
         // Display the template.
@@ -248,13 +269,19 @@ class MyCustomContent extends Module
         if ($productSettings == false) {
             return $this->displayError('<p>' . $this->l('Failed to retrieve product settings for MyCustomContent') . '</p>');
         }
+
+        $substitutions = [
+            'MCC_GLOBAL_CONTENTS' => "The global custom contents set in the module's configuration.",
+            'PRODUCT_NAME' => "The name of a displayed product."
+        ];
         
         $this->context->smarty->assign([
             'mycustomcontent_product_checked' => (int)$productSettings['view_enabled'],
             'mycustomcontent_viewenabled' => (bool)Configuration::get('MYCUSTOMCONTENT_VIEWENABLED'),
             'mycustomcontent_product_override_enabled_globally' => (bool)Configuration::get('MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED'),
             'mycustomcontent_product_override_checked' => (int)$productSettings['override_enabled'],
-            'mycustomcontent_product_override_value' => (string)$productSettings['override_contents']
+            'mycustomcontent_product_override_value' => (string)$productSettings['override_contents'],
+            'mycustomcontent_product_substitutions' => $substitutions
         ]);
 
         return $this->display(__FILE__, 'mycustomcontentproductoption.tpl');
@@ -355,6 +382,7 @@ class MyCustomContent extends Module
             $mccViewEnabled = (bool)Tools::getValue('MYCUSTOMCONTENT_VIEWENABLED');
             $mccContent = (string)Tools::getValue('MYCUSTOMCONTENT_CONTENT');
             $mccPerProductOverridesEnabled = (bool)Tools::getValue('MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED');
+            $mccSubstitutionsEnabled = (bool)Tools::getValue('MYCUSTOMCONTENT_SUBSTITUTIONSENABLED');
 
             if (!Validate::isBool($mccViewEnabled) ||
                 !Validate::isString($mccContent) ||
@@ -365,6 +393,7 @@ class MyCustomContent extends Module
                 Configuration::updateValue('MYCUSTOMCONTENT_VIEWENABLED', $mccViewEnabled, true);
                 Configuration::updateValue('MYCUSTOMCONTENT_CONTENT', $mccContent, true);
                 Configuration::updateValue('MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED', $mccPerProductOverridesEnabled, true);
+                Configuration::updateValue('MYCUSTOMCONTENT_SUBSTITUTIONSENABLED', $mccSubstitutionsEnabled, true);
                 $output .= $this->displayConfirmation($this->l('Settings updated'));
             }
         }
@@ -409,7 +438,7 @@ class MyCustomContent extends Module
                     'type' => 'textarea',
                     'label' => $this->l('Content to display'),
                     'name' => 'MYCUSTOMCONTENT_CONTENT',
-                    'desc' => $this->l('HTML supported, will be displayed on the product page in a big white box'),
+                    'desc' => $this->l('HTML supported, will be displayed on the product page in a big white box.'),
                     'required' => true,
                     'class' => 'autoload_rte'
                 ],
@@ -427,6 +456,26 @@ class MyCustomContent extends Module
                         ],
                         [
                             'id' => 'MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED_off',
+                            'value' => 0,
+                            'label' => $this->l('No')
+                        ]
+                    ]
+                ],
+                [
+                    'type' => 'switch',
+                    'label' => $this->l('Allow substitutions in custom content'),
+                    'name' => 'MYCUSTOMCONTENT_SUBSTITUTIONSENABLED',
+                    'desc' => $this->l('This is a Proof-of-Concept feature allowing a (very) limited variable usage in the custom content. See docs or a product page for more information.'),
+                    'is_bool' => true,
+                    'required' => true,
+                    'values' => [
+                        [
+                            'id' => 'MYCUSTOMCONTENT_SUBSTITUTIONSENABLED_on',
+                            'value' => 1,
+                            'label' => $this->l('Yes')
+                        ],
+                        [
+                            'id' => 'MYCUSTOMCONTENT_SUBSTITUTIONSENABLED_off',
                             'value' => 0,
                             'label' => $this->l('No')
                         ]
@@ -467,6 +516,7 @@ class MyCustomContent extends Module
         $helper->fields_value['MYCUSTOMCONTENT_VIEWENABLED'] = Configuration::get('MYCUSTOMCONTENT_VIEWENABLED');
         $helper->fields_value['MYCUSTOMCONTENT_CONTENT'] = Configuration::get('MYCUSTOMCONTENT_CONTENT');
         $helper->fields_value['MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED'] = Configuration::get('MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED');
+        $helper->fields_value['MYCUSTOMCONTENT_SUBSTITUTIONSENABLED'] = Configuration::get('MYCUSTOMCONTENT_SUBSTITUTIONSENABLED');
 
         return $helper->generateForm($fieldsForm);
     }
