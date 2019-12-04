@@ -90,10 +90,10 @@ class MyCustomContent extends Module
             'actionProductUpdate'                  // product form extra fields handling
         ];
 
-        foreach ($hookNames as $name)
-        {
-            if (!$this->registerHook($name))
+        foreach ($hookNames as $name) {
+            if (!$this->registerHook($name)) {
                 return false;
+            }
         }
 
         return true;
@@ -111,10 +111,10 @@ class MyCustomContent extends Module
             'MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED' => false
         ];
 
-        foreach ($configValues as $key => $value)
-        {
-            if (!Configuration::updateValue($key, $value, true))
+        foreach ($configValues as $key => $value) {
+            if (!Configuration::updateValue($key, $value, true)) {
                 return false;
+            }
         }
 
         return true;
@@ -164,10 +164,10 @@ class MyCustomContent extends Module
             'MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED'
         ];
 
-        foreach ($configKeys as $key)
-        {
-            if (!Configuration::deleteByName($key))
+        foreach ($configKeys as $key) {
+            if (!Configuration::deleteByName($key)) {
                 return false;
+            }
         }
 
         return true;
@@ -216,8 +216,9 @@ class MyCustomContent extends Module
 
         $productSettings = $this->getProductSettings($productId);
 
-        if ($productSettings == false)
+        if ($productSettings == false) {
             return $this->displayError($this->l('Failed to retrieve product settings for MyCustomContent'));
+        }
 
         // Get basic options.
         $viewEnabled = Configuration::get('MYCUSTOMCONTENT_VIEWENABLED') && $productSettings['view_enabled'];
@@ -225,8 +226,10 @@ class MyCustomContent extends Module
 
         // Apply per-product contents override if enabled.
         $productSettings['override_enabled'] &= (bool)Configuration::get('MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED');
-        if ($productSettings['override_enabled'] == true)
+
+        if ($productSettings['override_enabled'] == true) {
             $contentString = $productSettings['override_contents'];
+        }
 
         // Display the template.
         $this->context->smarty->assign([
@@ -242,8 +245,9 @@ class MyCustomContent extends Module
         $productId = (int)$params['id_product'];
         $productSettings = $this->getProductSettings($productId);
 
-        if ($productSettings == false)
+        if ($productSettings == false) {
             return $this->displayError('<p>' . $this->l('Failed to retrieve product settings for MyCustomContent') . '</p>');
+        }
         
         $this->context->smarty->assign([
             'mycustomcontent_product_checked' => (int)$productSettings['view_enabled'],
@@ -266,8 +270,9 @@ class MyCustomContent extends Module
 
         $updateResult = $this->setProductSettings($productId, $formViewEnabled, $formOverrideEnabled, $formOverrideContents);
         
-        if ($updateResult != true)
+        if ($updateResult != true) {
             return $this->displayError('<p>' . $this->l('Failed to update product settings for MyCustomContent') . '</p>');
+        }
     }
 
 
@@ -284,18 +289,20 @@ class MyCustomContent extends Module
      */
     public function getProductSettings($productId)
     {
-        if (!is_numeric($productId))
+        if (!is_numeric($productId)) {
             return false;
+        }
         
         // Get the module-related product settings.
-        $sqlGetProductSettings = 'SELECT mcc_product_viewenabled, mcc_product_overrideenabled, mcc_product_overridevalue' . 
+        $sqlGetProductSettings = 'SELECT mcc_product_viewenabled, mcc_product_overrideenabled, mcc_product_overridevalue' .
                                  ' FROM ' . _DB_PREFIX_ . 'product' .
                                  ' WHERE id_product = ' . pSQL($productId);
         
         $dbResult = Db::getInstance()->getRow($sqlGetProductSettings, false);
 
-        if($dbResult == false)
+        if ($dbResult == false) {
             return false;
+        }
 
         return [
             'view_enabled' => (bool)$dbResult['mcc_product_viewenabled'],
@@ -310,8 +317,9 @@ class MyCustomContent extends Module
      */
     public function setProductSettings($productId, $viewEnabled, $overrideEnabled, $overrideValue)
     {
-        if (!is_numeric($productId))
+        if (!is_numeric($productId)) {
             return false;
+        }
 
         $productData = [
             'mcc_product_viewenabled' => pSQL($viewEnabled),
@@ -321,8 +329,9 @@ class MyCustomContent extends Module
 
         $dbResult = Db::getInstance()->update('product', $productData, 'id_product=' . pSQL($productId), 1);
 
-        if (!$dbResult)
+        if (!$dbResult) {
             return false;
+        }
 
         return true;
     }
@@ -347,8 +356,7 @@ class MyCustomContent extends Module
             $mccContent = (string)Tools::getValue('MYCUSTOMCONTENT_CONTENT');
             $mccPerProductOverridesEnabled = (bool)Tools::getValue('MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED');
 
-            if (
-                !Validate::isBool($mccViewEnabled) ||
+            if (!Validate::isBool($mccViewEnabled) ||
                 !Validate::isString($mccContent) ||
                 !Validate::isBool($mccPerProductOverridesEnabled)
             ) {
