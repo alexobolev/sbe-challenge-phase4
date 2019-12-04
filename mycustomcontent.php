@@ -1,6 +1,7 @@
 <?php
 /**
  * @author Alex Sobolev <alexobolev@outlook.com>
+ * @copyright 2019 Alex Sobolev
  * @license https://opensource.org/licenses/MIT The MIT License
  */
 
@@ -205,7 +206,7 @@ class MyCustomContent extends Module
 
     public function hookDisplayHeader()
     {
-        $this->context->controller->addCSS($this->_path . 'css/mycustomcontent.css', 'all');
+        $this->context->controller->addCSS($this->_path . 'views/css/mycustomcontent.css', 'all');
     }
 
     public function hookDisplayProductAdditionalInfo($params)
@@ -342,9 +343,9 @@ class MyCustomContent extends Module
         $output = null;
 
         if (Tools::isSubmit('submit' . $this->name)) {
-            $mccViewEnabled = boolval(Tools::getValue('MYCUSTOMCONTENT_VIEWENABLED'));
-            $mccContent = strval(Tools::getValue('MYCUSTOMCONTENT_CONTENT'));
-            $mccPerProductOverridesEnabled = boolval(Tools::getValue('MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED'));
+            $mccViewEnabled = (bool)Tools::getValue('MYCUSTOMCONTENT_VIEWENABLED');
+            $mccContent = (string)Tools::getValue('MYCUSTOMCONTENT_CONTENT');
+            $mccPerProductOverridesEnabled = (bool)Tools::getValue('MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED');
 
             if (
                 !Validate::isBool($mccViewEnabled) ||
@@ -371,6 +372,7 @@ class MyCustomContent extends Module
     {
         $defaultLang = (int)Configuration::get('PS_LANG_DEFAULT');
 
+        $fieldsForm = [];
         $fieldsForm[0]['form'] = [
             'legend' => [
                 'title' => $this->l('Settings'),

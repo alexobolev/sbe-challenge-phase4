@@ -1,5 +1,6 @@
 {*
  * @author Alex Sobolev <alexobolev@outlook.com>
+ * @copyright 2019 Alex Sobolev
  * @license https://opensource.org/licenses/MIT The MIT License 
  *}
 <!-- MyCustomContent Product Option block -->
