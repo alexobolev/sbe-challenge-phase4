@@ -108,7 +108,7 @@ class MyCustomContent extends Module
     {
         $configValues = [
             'MYCUSTOMCONTENT_VIEWENABLED' => true,
-            'MYCUSTOMCONTENT_CONTENT' => 'Hello, XXI Century World!',
+            'MYCUSTOMCONTENT_CONTENT' => '<p>Hello, XXI Century World!</p>',
             'MYCUSTOMCONTENT_PERPRODUCTOVERRIDESENABLED' => false,
             'MYCUSTOMCONTENT_SUBSTITUTIONSENABLED' => true
         ];
@@ -386,7 +386,8 @@ class MyCustomContent extends Module
 
             if (!Validate::isBool($mccViewEnabled) ||
                 !Validate::isString($mccContent) ||
-                !Validate::isBool($mccPerProductOverridesEnabled)
+                !Validate::isBool($mccPerProductOverridesEnabled) ||
+                !Validate::isBool($mccSubstitutionsEnabled)
             ) {
                 $output .= $this->displayError($this->l('Invalid configuration value'));
             } else {
